@@ -1,0 +1,1678 @@
+/**
+ * This file is a modified version of the standalone BULS library for Sway.
+ * The original file source is:
+ * browsertelemetry\$(var.Platform)\$(var.Flavor)\x-none\diagnostics\standalone\commondiagnostics$(var.DEBUGFILEEXT).js
+ * 
+ * Our modifications are:
+ * - Wrapping the file contents in an IIFE to not conflict with MicrosoftAjax.js.
+ */
+
+(function () {
+	/*! Version=16.0.0.0 */
+	if (!window) this.window = this;
+
+	var Type = Function;
+
+
+	Array._add$i = function Array$_add$i$st(array, item) {
+		array.push(item);
+	}
+	Array._addRange$i = function Array$_addRange$i$st(array, items) {
+		for (var index = 0; index < items.length; index++) {
+			var item = items[index];
+			array.push(item);
+		}
+	}
+	Array.clear = function Array$clear$st(array) {
+		array.length = 0;
+	}
+	Array._contains$i = function Array$_contains$i$st(array, item) {
+		return Array._indexOf$i(array, item) >= 0;
+	}
+	Array._indexOf$i = function Array$_indexOf$i$st(array, item, startAt) {
+		if (array.indexOf) {
+			return array.indexOf(item, startAt);
+		}
+		startAt = startAt;
+		if (isNaN(startAt)) {
+			startAt = 0;
+		}
+		var length = array.length;
+		if (isFinite(startAt)) {
+			startAt = startAt | 0;
+		}
+		if (startAt < 0) {
+			startAt = Math.max(0, length + startAt);
+		}
+		for (var i = startAt; i < length; i++) {
+			if (array[i] === item) {
+				return i;
+			}
+		}
+		return -1;
+	}
+	Array.dequeue = function Array$dequeue$st(array) {
+		return array.shift();
+	}
+	Array.enqueue = function Array$enqueue$st(array, obj) {
+		Array._add$i(array, obj);
+	}
+	Array.__typeName = 'Array';
+	Array.__class = true;
+
+
+	Boolean.__typeName = 'Boolean';
+	Boolean.__class = true;
+
+
+	Function._createDelegate$i = function Function$_createDelegate$i$st(context, target) {
+		return function() {
+			return target.apply(context, arguments);
+		};
+	}
+	Function.__typeName = 'Function';
+	Function.__class = true;
+
+
+	Date.__typeName = 'Date';
+	Date.__class = true;
+
+
+	Error._create$i = function Error$_create$i$st(message, errorInfo) {
+		var exception = new Error(message);
+		exception.message = message;
+		if (errorInfo) {
+			var $$dict_4 = errorInfo;
+			for (var $$key_5 in $$dict_4) {
+				var entry = { key: $$key_5, value: $$dict_4[$$key_5] };
+				exception[entry.key] = entry.value;
+			}
+		}
+		exception._popStackFrame$i();
+		return exception;
+	}
+	Error._argument$i = function Error$_argument$i$st(paramName, message) {
+		return Error._createSimple$p('Sys.ArgumentException', message || 'Value does not fall within the expected range.', paramName);
+	}
+	Error._createSimple$p = function Error$_createSimple$p$st(exceptionName, message, paramName) {
+		var msg = exceptionName + ': ' + (message || 'Value cannot be null.');
+		if (paramName) {
+			msg += '\n' + String._format$i('Parameter name: {0}', paramName);
+		}
+		var errorInfo = { name: exceptionName };
+		if (paramName) {
+			errorInfo['paramName'] = paramName;
+		}
+		var exception = Error._create$i(message, errorInfo);
+		exception._popStackFrame$i();
+		exception._popStackFrame$i();
+		return exception;
+	}
+	Error._format$i = function Error$_format$i$st(message) {
+		return Error._createSimple$p('Sys.FormatException', message || 'One of the identified items was in an invalid format.');
+	}
+	Error.prototype._popStackFrame$i=function Error$_popStackFrame$i$in() {
+		if (!this.stack || !this.fileName || !this.lineNumber) {
+			return;
+		}
+		var stackFrames = this.stack.split('\n');
+		var currentFrame = stackFrames[0];
+		var pattern = this.fileName + ':' + this.lineNumber;
+		while (currentFrame && currentFrame.indexOf(pattern) === -1) {
+			stackFrames.shift();
+			currentFrame = stackFrames[0];
+		}
+		var nextFrame = stackFrames[1];
+		if (!nextFrame) {
+			return;
+		}
+		var nextFrameParts = nextFrame.match(new RegExp('@(.*):(\\d+)$'));
+		if (!nextFrameParts) {
+			return;
+		}
+		this.fileName = nextFrameParts[1];
+		this.lineNumber = parseInt(nextFrameParts[2]);
+		stackFrames.shift();
+		this.stack = stackFrames.join('\n');
+	}
+	Error.__typeName = 'Error';
+	Error.__class = true;
+
+
+	Number.MAX_VALUE = 0;
+	Number.MIN_VALUE = 0;
+	Number.NaN = 0;
+	Number.NEGATIVE_INFINITY = 0;
+	Number.POSITIVE_INFINITY = 0;
+	Number.prototype.format=function Number$format$in(format) {
+		return this._toFormattedString$p(format, Sys._cultureInfo.InvariantCulture);
+	}
+	Number.prototype.localeFormat=function Number$localeFormat$in(format) {
+		return this._toFormattedString$p(format, Sys._cultureInfo.CurrentCulture);
+	}
+	Number.parseLocale = function Number$parseLocale$st(s) {
+		return Number._parse$i(s, Sys._cultureInfo.CurrentCulture);
+	}
+	Number.parseInvariant = function Number$parseInvariant$st(s) {
+		return Number._parse$i(s, Sys._cultureInfo.InvariantCulture);
+	}
+	Number.prototype._toFormattedString$p=function Number$_toFormattedString$p$in(format, formatProvider) {
+		if (!format || format === 'i') {
+			if (formatProvider && formatProvider.name.length > 0) {
+				return this.toLocaleString();
+			}
+			else {
+				return this.toString();
+			}
+		}
+		var _percentPositivePattern = [ 'n %', 'n%', '%n' ];
+		var _percentNegativePattern = [ '-n %', '-n%', '-%n' ];
+		var _numberNegativePattern = [ '(n)', '-n', '- n', 'n-', 'n -' ];
+		var _currencyPositivePattern = [ '$n', 'n$', '$ n', 'n $' ];
+		var _currencyNegativePattern = [ '($n)', '-$n', '$-n', '$n-', '(n$)', '-n$', 'n-$', 'n$-', '-n $', '-$ n', 'n $-', '$ n-', '$ -n', 'n- $', '($ n)', '(n $)' ];
+		var nf = formatProvider.numberFormat;
+		var number = Math.abs(this);
+		var precision = -1;
+		if (format.length > 1) {
+			precision = parseInt(format.slice(1), 10);
+		}
+		var pattern;
+		switch (format.charAt(0)) {
+			case 'd':
+			case 'D':
+				pattern = 'n';
+				if (precision !== -1) {
+					number = this._zeroPad$p('' + number, precision, true);
+				}
+				if (this < 0) {
+					number = -number;
+				}
+				break;
+			case 'c':
+			case 'C':
+				if (this < 0) {
+					pattern = _currencyNegativePattern[nf.CurrencyNegativePattern];
+				}
+				else {
+					pattern = _currencyPositivePattern[nf.CurrencyPositivePattern];
+				}
+				if (precision === -1) {
+					precision = nf.CurrencyDecimalDigits;
+				}
+				number = this._expandNumber$p(Math.abs(this), precision, nf.CurrencyGroupSizes, nf.CurrencyGroupSeparator, nf.CurrencyDecimalSeparator);
+				break;
+			case 'n':
+			case 'N':
+				if (this < 0) {
+					pattern = _numberNegativePattern[nf.NumberNegativePattern];
+				}
+				else {
+					pattern = 'n';
+				}
+				if (precision === -1) {
+					precision = nf.NumberDecimalDigits;
+				}
+				number = this._expandNumber$p(Math.abs(this), precision, nf.NumberGroupSizes, nf.NumberGroupSeparator, nf.NumberDecimalSeparator);
+				break;
+			case 'p':
+			case 'P':
+				if (this < 0) {
+					pattern = _percentNegativePattern[nf.PercentNegativePattern];
+				}
+				else {
+					pattern = _percentPositivePattern[nf.PercentPositivePattern];
+				}
+				if (precision === -1) {
+					precision = nf.PercentDecimalDigits;
+				}
+				number = this._expandNumber$p(Math.abs(this) * 100, precision, nf.PercentGroupSizes, nf.PercentGroupSeparator, nf.PercentDecimalSeparator);
+				break;
+			default:
+				throw Error._format$i('Format specifier was invalid.');
+		}
+		var regex = /n|\$|-|%/g;
+		var ret = '';
+		for (; ; ) {
+			var index = regex.lastIndex;
+			var ar = regex.exec(pattern);
+			ret += pattern.slice(index, (ar) ? ar.index : pattern.length);
+			if (!ar) {
+				break;
+			}
+			switch (ar[0]) {
+				case 'n':
+					ret += number;
+					break;
+				case '$':
+					ret += nf.CurrencySymbol;
+					break;
+				case '-':
+					ret += nf.NegativeSign;
+					break;
+				case '%':
+					ret += nf.PercentSymbol;
+					break;
+			}
+		}
+		return ret;
+	}
+	Number.prototype._zeroPad$p=function Number$_zeroPad$p$in(str, count, left) {
+		for (var l = str.length; l < count; l++) {
+			str = ((left) ? ('0' + str) : (str + '0'));
+		}
+		return str;
+	}
+	Number.prototype._expandNumber$p=function Number$_expandNumber$p$in(number, precision, groupSizes, sep, decimalChar) {
+		var curSize = groupSizes[0];
+		var curGroupIndex = 1;
+		var factor = Math.pow(10, precision);
+		var rounded = (Math.round(number * factor) / factor);
+		if (!isFinite(rounded)) {
+			rounded = number;
+		}
+		number = rounded;
+		var numberString = number.toString();
+		var right = '';
+		var exponent;
+		var split = numberString.split(/e/i);
+		numberString = split[0];
+		exponent = ((split.length > 1) ? parseInt(split[1]) : 0);
+		split = numberString.split('.');
+		numberString = split[0];
+		right = (split.length > 1) ? split[1] : '';
+		if (exponent > 0) {
+			right = this._zeroPad$p(right, exponent, false);
+			numberString += right.slice(0, exponent);
+			right = right.substr(exponent);
+		}
+		else if (exponent < 0) {
+			exponent = -exponent;
+			numberString = this._zeroPad$p(numberString, exponent + 1, true);
+			right = numberString.slice(-exponent, numberString.length) + right;
+			numberString = numberString.slice(0, -exponent);
+		}
+		if (precision > 0) {
+			if (right.length > precision) {
+				right = right.slice(0, precision);
+			}
+			else {
+				right = this._zeroPad$p(right, precision, false);
+			}
+			right = decimalChar + right;
+		}
+		else {
+			right = '';
+		}
+		var stringIndex = numberString.length - 1;
+		var ret = '';
+		while (stringIndex >= 0) {
+			if (!curSize || curSize > stringIndex) {
+				if (ret.length > 0) {
+					return numberString.slice(0, stringIndex + 1) + sep + ret + right;
+				}
+				else {
+					return numberString.slice(0, stringIndex + 1) + right;
+				}
+			}
+			if (ret.length > 0) {
+				ret = numberString.slice(stringIndex - curSize + 1, stringIndex + 1) + sep + ret;
+			}
+			else {
+				ret = numberString.slice(stringIndex - curSize + 1, stringIndex + 1);
+			}
+			stringIndex -= curSize;
+			if (curGroupIndex < groupSizes.length) {
+				curSize = groupSizes[curGroupIndex];
+				curGroupIndex++;
+			}
+		}
+		return numberString.slice(0, stringIndex + 1) + sep + ret + right;
+	}
+	Number._parse$i = function Number$_parse$i$st(value, formatProvider) {
+		value = value._trim$i();
+		if (value.match(/^[+-]?infinity$/i)) {
+			return parseFloat(value);
+		}
+		if (value.match(/^0x[a-f0-9]+$/i)) {
+			return parseInt(value);
+		}
+		var nfi = formatProvider.numberFormat;
+		var signInfo = Number._parseNumberNegativePattern$p(value, nfi, nfi.NumberNegativePattern);
+		var sign = signInfo[0];
+		var num = signInfo[1];
+		if (sign === '' && nfi.NumberNegativePattern !== 1) {
+			signInfo = Number._parseNumberNegativePattern$p(value, nfi, 1);
+			sign = signInfo[0];
+			num = signInfo[1];
+		}
+		if (sign === '') {
+			sign = '+';
+		}
+		var exponent;
+		var intAndFraction;
+		var exponentPos = num.indexOf('e');
+		if (exponentPos < 0) {
+			exponentPos = num.indexOf('E');
+		}
+		if (exponentPos < 0) {
+			intAndFraction = num;
+			exponent = null;
+		}
+		else {
+			intAndFraction = num.substr(0, exponentPos);
+			exponent = num.substr(exponentPos + 1);
+		}
+		var integer;
+		var fraction;
+		var decimalPos = intAndFraction.indexOf(nfi.NumberDecimalSeparator);
+		if (decimalPos < 0) {
+			integer = intAndFraction;
+			fraction = null;
+		}
+		else {
+			integer = intAndFraction.substr(0, decimalPos);
+			fraction = intAndFraction.substr(decimalPos + nfi.NumberDecimalSeparator.length);
+		}
+		integer = integer.split(nfi.NumberGroupSeparator).join('');
+		var altNumGroupSeparator = nfi.NumberGroupSeparator.replace(/\u00A0/g, ' ');
+		if (nfi.NumberGroupSeparator !== altNumGroupSeparator) {
+			integer = integer.split(altNumGroupSeparator).join('');
+		}
+		var p = sign + integer;
+		if (fraction) {
+			p += '.' + fraction;
+		}
+		if (exponent) {
+			var expSignInfo = Number._parseNumberNegativePattern$p(exponent, nfi, 1);
+			if (expSignInfo[0] === '') {
+				expSignInfo[0] = '+';
+			}
+			p += 'e' + expSignInfo[0] + expSignInfo[1];
+		}
+		if (p.match(/^[+-]?\d*\.?\d*(e[+-]?\d+)?$/)) {
+			return parseFloat(p);
+		}
+		return Number.NaN;
+	}
+	Number._parseNumberNegativePattern$p = function Number$_parseNumberNegativePattern$p$st(value, nfi, negativePattern) {
+		var neg = nfi.NegativeSign;
+		var pos = nfi.PositiveSign;
+		switch (negativePattern) {
+			case 4:
+				neg = ' ' + neg;
+				pos = ' ' + pos;
+				break;
+			case 2:
+				pos += ' ';
+				neg += ' ';
+				break;
+		}
+		switch (negativePattern) {
+			case 4:
+			case 3:
+				if (value._endsWith$i(neg)) {
+					return [ '-', value.substr(0, value.length - neg.length) ];
+				}
+				if (value._endsWith$i(pos)) {
+					return [ '+', value.substr(0, value.length - pos.length) ];
+				}
+				break;
+			case 2:
+			case 1:
+				if (value._startsWith$i(neg)) {
+					return [ '-', value.substr(neg.length) ];
+				}
+				if (value._startsWith$i(pos)) {
+					return [ '+', value.substr(pos.length) ];
+				}
+				break;
+			case 0:
+				if (value._startsWith$i('(') && value._endsWith$i(')')) {
+					return [ '-', value.substr(1, value.length - 2) ];
+				}
+				break;
+		}
+		return [ '', value ];
+	}
+	Number.__typeName = 'Number';
+	Number.__class = true;
+
+
+	Object.getType = function Object$getType$st(instance) {
+		var t = instance.constructor;
+		if (!t || typeof(t) !== 'function') {
+			return Object;
+		}
+		var name = t._getName$i();
+		if (!name || name === 'Object') {
+			return Object;
+		}
+		return t;
+	}
+	Object.__typeName = 'Object';
+	Object.__class = true;
+
+
+	RegExp.__typeName = 'RegExp';
+	RegExp.__class = true;
+
+
+	String.prototype._endsWith$i=function String$_endsWith$i$in(suffix) {
+		return this.substr(this.length - suffix.length) === suffix;
+	}
+	String._format$i = function String$_format$i$st(format) {
+		var args = [];
+		for (var $$pai_2 = 1; $$pai_2 < arguments.length; ++$$pai_2) {
+			args[$$pai_2 - 1] = arguments[$$pai_2];
+		}
+		return String._toFormattedString$p(false, format, args);
+	}
+	String._toFormattedString$p = function String$_toFormattedString$p$st(useLocale, format, args) {
+		var result = '';
+		for (var i = 0; ; ) {
+			var open = format.indexOf('{', i);
+			var close = format.indexOf('}', i);
+			if (open < 0 && close < 0) {
+				result += format.slice(i);
+				break;
+			}
+			if (close > 0 && (close < open || open < 0)) {
+				result += format.slice(i, close + 1);
+				i = close + 2;
+				continue;
+			}
+			result += format.slice(i, open);
+			i = open + 1;
+			if (format.charAt(i) === '{') {
+				result += '{';
+				i++;
+				continue;
+			}
+			if (close < 0) {
+				break;
+			}
+			var brace = format.substring(i, close);
+			var colonIndex = brace.indexOf(':');
+			var argNumber = parseInt((colonIndex < 0) ? brace : brace.substring(0, colonIndex));
+			var argFormat = (colonIndex < 0) ? '' : brace.substr(colonIndex + 1);
+			var arg = args[argNumber];
+			if ((arg) == (null)) {
+				arg = '';
+			}
+			if (arg.toFormattedString) {
+				result += arg.toFormattedString(argFormat);
+			}
+			else if (useLocale && arg.localeFormat) {
+				result += arg.localeFormat(argFormat);
+			}
+			else if (useLocale && arg.format) {
+				result += arg.format(argFormat);
+			}
+			else {
+				result += arg.toString();
+			}
+			i = close + 1;
+		}
+		return result;
+	}
+	String.prototype._startsWith$i=function String$_startsWith$i$in(prefix) {
+		return this.substr(0, prefix.length) === prefix;
+	}
+	String.prototype._trim$i=function String$_trim$i$in() {
+		return this.replace(new RegExp('^\\s+|\\s+$', 'g'), '');
+	}
+	String.__typeName = 'String';
+	String.__class = true;
+
+
+	Type.prototype.__baseType=null;
+	Type.prototype.__basePrototypePending=false;
+	Type.prototype.__interfaces=null;
+	Type.prototype.__interfaceCache=null;
+	Type.prototype.__typeName=null;
+	Type.prototype.__class=false;
+	Type.prototype.__interface=false;
+	Type.prototype.__enum=false;
+	Type.prototype.__flags=false;
+	Type.prototype.__namespace=false;
+	Type.__rootNamespaces = [];
+	Type.prototype._callBaseMethod$i=function Type$_callBaseMethod$i$in(instance, methodName, args) {
+		var baseMethod = this._getBaseMethod$i(methodName);
+		return (args) ? baseMethod.apply(instance, args) : baseMethod.call(instance);
+	}
+	Type.prototype._getBaseType$i=function Type$_getBaseType$i$in() {
+		return this.__baseType;
+	}
+	Type.prototype._getBaseMethod$i=function Type$_getBaseMethod$i$in(name) {
+		this._resolveInheritance$i();
+		var type = this._getBaseType$i();
+		if (type) {
+			var o = type.prototype[name];
+			return ((Function._isInstanceOfType$i(o)) ? o : null);
+		}
+		return null;
+	}
+	Type.prototype._getName$i=function Type$_getName$i$in() {
+		return this.__typeName || '';
+	}
+	Type.parse = function Type$parse$st(typeName) {
+		var rootObject = window;
+		var parts = typeName.split('.');
+		for (var i = 0; i < parts.length; i++) {
+			var part = parts[i];
+			var candidate = rootObject[part];
+			if (!candidate) {
+				throw Error._argument$i('typeName');
+			}
+			rootObject = candidate;
+		}
+		return rootObject;
+	}
+	Type.prototype._implementsInterface$i=function Type$_implementsInterface$i$in(interfaceType) {
+		if (!this.__interfaceCache) {
+			this.__interfaceCache = new Array(0);
+			var t = this;
+			while (t) {
+				if (t.__interfaces) {
+					var $$t_2;
+					this.__interfaceCache = ($$t_2 = this.__interfaceCache).concat.apply($$t_2, t.__interfaces);
+				}
+				t = t.__baseType;
+			}
+		}
+		return !!this.__interfaceCache && Array._indexOf$i(this.__interfaceCache, interfaceType) !== -1;
+	}
+	Type.prototype._inheritsFrom$i=function Type$_inheritsFrom$i$in(parentType) {
+		var current = this.__baseType;
+		while (current) {
+			if (current === parentType) {
+				return true;
+			}
+			current = current.__baseType;
+		}
+		return false;
+	}
+	Type.prototype._initializeBase$i=function Type$_initializeBase$i$in(instance, args) {
+		this._resolveInheritance$i();
+		var b = this.__baseType;
+		if (b) {
+			if (args) {
+				(b).apply(instance, args);
+			}
+			else {
+				(b).call(instance);
+			}
+		}
+	}
+	Type.isEnum = function Type$isEnum$st(type) {
+		return !!type && type.__enum;
+	}
+	Type.prototype._isInstanceOfType$i=function Type$_isInstanceOfType$i$in(instance) {
+		if ((instance) == (null)) {
+			return false;
+		}
+		if (instance instanceof this) {
+			return true;
+		}
+		var t = Object.getType(instance);
+		return this === t || t._inheritsFrom$i(this) || t._implementsInterface$i(this);
+	}
+	Type.prototype.registerClass=function Type$registerClass$in(className, baseClass) {
+		var interfaces = [];
+		for (var $$pai_3 = 2; $$pai_3 < arguments.length; ++$$pai_3) {
+			interfaces[$$pai_3 - 2] = arguments[$$pai_3];
+		}
+		this.prototype['constructor'] = this;
+		this.__typeName = className;
+		this.__class = true;
+		if (baseClass) {
+			this.__baseType = baseClass;
+			this.__basePrototypePending = true;
+		}
+		if (interfaces) {
+			this.__interfaces = interfaces;
+		}
+	}
+	Type.prototype._registerEnum$i=function Type$_registerEnum$i$in(typeName, isFlags) {
+		var $$dict_3 = this.prototype;
+		for (var $$key_4 in $$dict_3) {
+			var entry = { key: $$key_4, value: $$dict_3[$$key_4] };
+			this[entry.key] = entry.value;
+		}
+		this.__typeName = typeName;
+		(this).__string = this.toString();
+		this.__flags = isFlags;
+		this.__enum = true;
+		this.toString = _enum._enumToString$i;
+	}
+	Type.prototype._registerInterface$i=function Type$_registerInterface$i$in(interfaceName) {
+		this.__typeName = interfaceName;
+		this.__interface = true;
+	}
+	Type.registerNamespace = function Type$registerNamespace$st(namespaceName) {
+		var rootObject = window;
+		var parts = namespaceName.split('.');
+		for (var i = 0; i < parts.length; i++) {
+			var part = parts[i];
+			var ns = rootObject[part];
+			if (!ns) {
+				rootObject[part] = ns = {};
+			}
+			if (!ns.__namespace) {
+				if (!i) {
+					Type.__rootNamespaces.push(ns);
+				}
+				ns.__namespace = true;
+				ns.__typeName = parts.slice(0, i + 1).join('.');
+				ns.getName = function() {
+					return ns.__typeName;
+				};
+			}
+			rootObject = ns;
+		}
+	}
+	Type.prototype._resolveInheritance$i=function Type$_resolveInheritance$i$in() {
+		if (this.__basePrototypePending) {
+			var baseType = this.__baseType;
+			baseType._resolveInheritance$i();
+			var $$dict_2 = baseType.prototype;
+			for (var $$key_3 in $$dict_2) {
+				var entry = { key: $$key_3, value: $$dict_2[$$key_3] };
+				if (!this.prototype[entry.key]) {
+					this.prototype[entry.key] = entry.value;
+				}
+			}
+			this.__basePrototypePending = false;
+		}
+	}
+	Type.__typeName = 'Type';
+	Type.__class = true;
+
+
+	Type.registerNamespace('Sys');
+
+	function _enum() {
+	}
+	_enum._toString$i = function _enum$_toString$i$st(type, value) {
+		if ((value) == (null)) {
+			return (type).__string;
+		}
+		var mapping = type.prototype;
+		if (type.__flags) {
+			var sorted = [];
+			var $$dict_5 = mapping;
+			for (var $$key_6 in $$dict_5) {
+				var entry = { key: $$key_6, value: $$dict_5[$$key_6] };
+				Array._add$i(sorted, { key: entry.key, value: entry.value });
+			}
+			sorted.sort(function(lhs, rhs) {
+				return ((lhs)['value']) - ((rhs)['value']);
+			});
+			(type).__sortedValues = sorted;
+			var names = [];
+			var remainingValue = value;
+			for (var i = sorted.length - 1; i >= 0; i--) {
+				var entry = sorted[i];
+				var currentValue = entry['value'];
+				if (!currentValue) {
+					continue;
+				}
+				if ((currentValue & value) === currentValue) {
+					Array._add$i(names, entry['key']);
+					remainingValue -= currentValue;
+					if (!remainingValue) {
+						break;
+					}
+				}
+			}
+			if (names.length && !remainingValue) {
+				return names.reverse().join(', ');
+			}
+		}
+		else {
+			var $$dict_F = mapping;
+			for (var $$key_G in $$dict_F) {
+				var a = { key: $$key_G, value: $$dict_F[$$key_G] };
+				if (a.value === value) {
+					return a.key;
+				}
+			}
+		}
+		return '';
+	}
+	_enum._enumToString$i = function _enum$_enumToString$i$st(value) {
+		return _enum._toString$i(this, value);
+	}
+
+
+	Sys._browser = function Sys__browser() {
+	}
+	Sys._browser.$$cctor = function Sys__browser$$$cctor$st() {
+		Sys._browser._name$i = window.navigator.appName;
+		Sys._browser._version$i = parseFloat(window.navigator.appVersion);
+		if (window.navigator.userAgent.indexOf(' MSIE ') > -1) {
+			Sys._browser._agent$i = Sys._browser.InternetExplorer;
+			Sys._browser._version$i = parseFloat(window.navigator.userAgent.match(/MSIE (\d+\.\d+)/)[1]);
+			if (Sys._browser._version$i >= 8) {
+				if (window.document.documentMode >= 7) {
+					Sys._browser._documentMode$i = window.document.documentMode;
+				}
+			}
+			Sys._browser._hasDebuggerStatement$i = true;
+		}
+		else if (window.navigator.userAgent.indexOf(' Firefox/') > -1) {
+			Sys._browser._agent$i = Sys._browser.Firefox;
+			Sys._browser._version$i = parseFloat(window.navigator.userAgent.match(/Firefox\/(\d+\.\d+)/)[1]);
+			Sys._browser._name$i = 'Firefox';
+			Sys._browser._hasDebuggerStatement$i = true;
+		}
+		else if (window.navigator.userAgent.indexOf(' AppleWebKit/') > -1) {
+			Sys._browser._agent$i = Sys._browser.Safari;
+			Sys._browser._version$i = parseFloat(window.navigator.userAgent.match(/AppleWebKit\/(\d+(\.\d+)?)/)[1]);
+			Sys._browser._name$i = 'Safari';
+		}
+		else if (window.navigator.userAgent.indexOf('Opera/') > -1) {
+			Sys._browser._agent$i = Sys._browser.Opera;
+		}
+		else if (window.navigator.userAgent.indexOf('Trident/') > -1) {
+			Sys._browser._agent$i = Sys._browser.InternetExplorer;
+			Sys._browser._version$i = parseFloat(window.navigator.userAgent.match(/rv\:(\d+\.\d+)/)[1]);
+			if (Sys._browser._version$i >= 11) {
+				if (window.document.documentMode >= 11) {
+					Sys._browser._documentMode$i = window.document.documentMode;
+				}
+			}
+			Sys._browser._hasDebuggerStatement$i = true;
+		}
+	}
+
+
+
+
+	Type.registerNamespace('Sys.Net');
+
+	Sys.Net.XMLDOM = function Sys_Net$XMLDOM$st(xmlText, ensureXPathNavigable) {
+		if (!window.DOMParser || (ensureXPathNavigable && Sys._browser._agent$i === Sys._browser.InternetExplorer && Sys._browser._documentMode$i >= 10)) {
+			var activeXNames = [ 'MSXML2.DomDocument.6.0', 'Msxml2.DOMDocument.3.0', 'Msxml2.DOMDocument' ];
+			for (var $$arr_3 = activeXNames, $$len_4 = $$arr_3.length, $$idx_5 = 0; $$idx_5 < $$len_4; ++$$idx_5) {
+				var activeXName = $$arr_3[$$idx_5];
+				try {
+					var xml = new ActiveXObject(activeXName);
+					xml.async = false;
+					xml.loadXML(xmlText);
+					xml.setProperty('SelectionLanguage', 'XPath');
+					xml.setProperty('ProhibitDTD', true);
+					return xml;
+				}
+				catch ($$e_8) {
+				}
+			}
+		}
+		else {
+			try {
+				var domParser = new DOMParser();
+				return domParser.parseFromString(xmlText, 'text/xml');
+			}
+			catch ($$e_A) {
+			}
+		}
+		return null;
+	}
+
+
+	Sys._cultureInfo = function Sys__cultureInfo(name, numberFormat, dateTimeFormat) {
+		this.name = name;
+		this.numberFormat = numberFormat;
+		this.dateTimeFormat = dateTimeFormat;
+	}
+	Sys._cultureInfo.$$cctor = function Sys__cultureInfo$$$cctor$st() {
+		Sys._cultureInfo.InvariantCulture = Sys._cultureInfo._parse({'name':'','numberFormat':{'CurrencyDecimalDigits':2,'CurrencyDecimalSeparator':'.','IsReadOnly':true,'CurrencyGroupSizes':[3],'NumberGroupSizes':[3],'PercentGroupSizes':[3],'CurrencyGroupSeparator':',','CurrencySymbol':'¤','NaNSymbol':'NaN','CurrencyNegativePattern':0,'NumberNegativePattern':1,'PercentPositivePattern':0,'PercentNegativePattern':0,'NegativeInfinitySymbol':'-Infinity','NegativeSign':'-','NumberDecimalDigits':2,'NumberDecimalSeparator':'.','NumberGroupSeparator':',','CurrencyPositivePattern':0,'PositiveInfinitySymbol':'Infinity','PositiveSign':'+','PercentDecimalDigits':2,'PercentDecimalSeparator':'.','PercentGroupSeparator':',','PercentSymbol':'%','PerMilleSymbol':'‰','NativeDigits':['0','1','2','3','4','5','6','7','8','9'],'DigitSubstitution':1},'dateTimeFormat':{'AMDesignator':'AM','Calendar':{'MinSupportedDateTime':'@-62135568000000@','MaxSupportedDateTime':'@253402300799999@','AlgorithmType':1,'CalendarType':1,'Eras':[1],'TwoDigitYearMax':2029,'IsReadOnly':true},'DateSeparator':'/','FirstDayOfWeek':0,'CalendarWeekRule':0,'FullDateTimePattern':'dddd, dd MMMM yyyy HH:mm:ss','LongDatePattern':'dddd, dd MMMM yyyy','LongTimePattern':'HH:mm:ss','MonthDayPattern':'MMMM dd','PMDesignator':'PM','RFC1123Pattern':"ddd, dd MMM yyyy HH':'mm':'ss 'GMT'",'ShortDatePattern':'MM/dd/yyyy','ShortTimePattern':'HH:mm','SortableDateTimePattern':"yyyy'-'MM'-'dd'T'HH':'mm':'ss",'TimeSeparator':':','UniversalSortableDateTimePattern':"yyyy'-'MM'-'dd HH':'mm':'ss'Z'",'YearMonthPattern':'yyyy MMMM','AbbreviatedDayNames':['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],'ShortestDayNames':['Su','Mo','Tu','We','Th','Fr','Sa'],'DayNames':['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],'AbbreviatedMonthNames':['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',''],'MonthNames':['January','February','March','April','May','June','July','August','September','October','November','December',''],'IsReadOnly':true,'NativeCalendarName':'Gregorian Calendar','AbbreviatedMonthGenitiveNames':['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',''],'MonthGenitiveNames':['January','February','March','April','May','June','July','August','September','October','November','December','']},'eras':[1,'A.D.',null,0]});
+		if (typeof(__cultureInfo) !== 'undefined') {
+			Sys._cultureInfo.CurrentCulture = Sys._cultureInfo._parse(__cultureInfo);
+			delete __cultureInfo;
+		}
+		else {
+			Sys._cultureInfo.CurrentCulture = Sys._cultureInfo._parse({'name':'en-US','numberFormat':{'CurrencyDecimalDigits':2,'CurrencyDecimalSeparator':'.','IsReadOnly':false,'CurrencyGroupSizes':[3],'NumberGroupSizes':[3],'PercentGroupSizes':[3],'CurrencyGroupSeparator':',','CurrencySymbol':'$','NaNSymbol':'NaN','CurrencyNegativePattern':0,'NumberNegativePattern':1,'PercentPositivePattern':0,'PercentNegativePattern':0,'NegativeInfinitySymbol':'-Infinity','NegativeSign':'-','NumberDecimalDigits':2,'NumberDecimalSeparator':'.','NumberGroupSeparator':',','CurrencyPositivePattern':0,'PositiveInfinitySymbol':'Infinity','PositiveSign':'+','PercentDecimalDigits':2,'PercentDecimalSeparator':'.','PercentGroupSeparator':',','PercentSymbol':'%','PerMilleSymbol':'‰','NativeDigits':['0','1','2','3','4','5','6','7','8','9'],'DigitSubstitution':1},'dateTimeFormat':{'AMDesignator':'AM','Calendar':{'MinSupportedDateTime':'@-62135568000000@','MaxSupportedDateTime':'@253402300799999@','AlgorithmType':1,'CalendarType':1,'Eras':[1],'TwoDigitYearMax':2029,'IsReadOnly':false},'DateSeparator':'/','FirstDayOfWeek':0,'CalendarWeekRule':0,'FullDateTimePattern':'dddd, MMMM dd, yyyy h:mm:ss tt','LongDatePattern':'dddd, MMMM dd, yyyy','LongTimePattern':'h:mm:ss tt','MonthDayPattern':'MMMM dd','PMDesignator':'PM','RFC1123Pattern':"ddd, dd MMM yyyy HH':'mm':'ss 'GMT'",'ShortDatePattern':'M/d/yyyy','ShortTimePattern':'h:mm tt','SortableDateTimePattern':"yyyy'-'MM'-'dd'T'HH':'mm':'ss",'TimeSeparator':':','UniversalSortableDateTimePattern':"yyyy'-'MM'-'dd HH':'mm':'ss'Z'",'YearMonthPattern':'MMMM, yyyy','AbbreviatedDayNames':['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],'ShortestDayNames':['Su','Mo','Tu','We','Th','Fr','Sa'],'DayNames':['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],'AbbreviatedMonthNames':['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',''],'MonthNames':['January','February','March','April','May','June','July','August','September','October','November','December',''],'IsReadOnly':false,'NativeCalendarName':'Gregorian Calendar','AbbreviatedMonthGenitiveNames':['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec',''],'MonthGenitiveNames':['January','February','March','April','May','June','July','August','September','October','November','December','']},'eras':[1,'A.D.',null,0]});
+		}
+	}
+	Sys._cultureInfo._parse = function Sys__cultureInfo$_parse$st(s) {
+		var evaled;
+		if (String._isInstanceOfType$i(s)) {
+			evaled = Sys.Serialization._javaScriptSerializer._deserialize$i(s);
+		}
+		else {
+			evaled = s;
+		}
+		var dtf = evaled.dateTimeFormat;
+		if (dtf && !dtf.Eras) {
+			dtf.Eras = evaled.eras;
+		}
+		return new Sys._cultureInfo(evaled.name, evaled.numberFormat, dtf);
+	}
+	Sys._cultureInfo.prototype = {
+		name: null,
+		dateTimeFormat: null,
+		numberFormat: null
+	}
+
+
+	Type.registerNamespace('Sys.Serialization');
+
+	Sys.Serialization._javaScriptSerializer = function Sys_Serialization__javaScriptSerializer() {
+	}
+	Sys.Serialization._javaScriptSerializer._deserialize$i = function Sys_Serialization__javaScriptSerializer$_deserialize$i$st(s, validate) {
+		return JSON.parse(s);
+	}
+	Sys.Serialization._javaScriptSerializer._populateKeys$p = function Sys_Serialization__javaScriptSerializer$_populateKeys$p$st(value, keys, seenValues) {
+		if (!value) {
+			return;
+		}
+		var scriptType = typeof(value);
+		if (scriptType === 'object') {
+			if (Array._contains$i(seenValues, value)) {
+				throw Error._argument$i('value');
+			}
+			if (Array._isInstanceOfType$i(value)) {
+				var a = value;
+				for (var i = 0; i < a.length; i++) {
+					Sys.Serialization._javaScriptSerializer._populateKeys$p(a[i], keys, seenValues);
+				}
+			}
+			else {
+				Array._add$i(seenValues, value);
+				var d = value;
+				var $$dict_8 = d;
+				for (var $$key_9 in $$dict_8) {
+					var entry = { key: $$key_9, value: $$dict_8[$$key_9] };
+					if (!Array._contains$i(keys, entry.key)) {
+						Array._add$i(keys, entry.key);
+					}
+					Sys.Serialization._javaScriptSerializer._populateKeys$p(entry.value, keys, seenValues);
+				}
+			}
+		}
+	}
+	Sys.Serialization._javaScriptSerializer._serialize$i = function Sys_Serialization__javaScriptSerializer$_serialize$i$st(o) {
+		o = (typeof(o) === 'undefined') ? null : o;
+		var keys = [ '__type' ];
+		Sys.Serialization._javaScriptSerializer._populateKeys$p(o, keys, []);
+		return JSON.stringify(o, keys);
+	}
+
+
+	_enum.registerClass('_enum');
+	Sys._browser.registerClass('Sys._browser');
+	Sys._cultureInfo.registerClass('Sys._cultureInfo');
+	Sys.Serialization._javaScriptSerializer.registerClass('Sys.Serialization._javaScriptSerializer');
+	Sys._browser.InternetExplorer = {};
+	Sys._browser.Firefox = {};
+	Sys._browser.Safari = {};
+	Sys._browser.Opera = {};
+	Sys._browser._agent$i = null;
+	Sys._browser._hasDebuggerStatement$i = false;
+	Sys._browser._name$i = null;
+	Sys._browser._version$i = 0;
+	Sys._browser._documentMode$i = 0;
+	Sys._browser.$$cctor();
+	Sys._cultureInfo.CurrentCulture = null;
+	Sys._cultureInfo.InvariantCulture = null;
+	Sys._cultureInfo.$$cctor();
+	Type.registerNamespace('Diag');
+
+	Diag.LogType = function() {}
+	Diag.LogType.prototype = {
+		trace: 0, 
+		assert: 1
+	}
+	Diag.LogType._registerEnum$i('Diag.LogType', false);
+
+
+	Diag.IUlsHost = function() {}
+	Diag.IUlsHost._registerInterface$i('Diag.IUlsHost');
+
+
+	Diag.ULSTraceLevel = function() {}
+	Diag.ULSTraceLevel.prototype = {
+		error: 10, 
+		warning: 15, 
+		info: 50, 
+		verbose: 100, 
+		spam: 200
+	}
+	Diag.ULSTraceLevel._registerEnum$i('Diag.ULSTraceLevel', false);
+
+
+	Diag.LoggingArgs = function Diag_LoggingArgs(ts, cat, tag, lvl, msg, type) {
+		this.timestamp = ts;
+		this.category = cat;
+		this.tag = tag;
+		this.level = lvl;
+		this.message = msg || '';
+		this.logType = type;
+	}
+	Diag.LoggingArgs.prototype = {
+		timestamp: 0,
+		category: 0,
+		tag: 0,
+		level: 0,
+		message: null,
+		logType: 0
+	}
+
+
+	Diag.UlsHostStub = function Diag_UlsHostStub() {
+	}
+	Diag.UlsHostStub.prototype = {
+		
+		handleTrace: function Diag_UlsHostStub$handleTrace$in(args) {
+		},
+		
+		showAssertDialog: function Diag_UlsHostStub$showAssertDialog$in(dialogMessage) {
+		},
+		
+		handoffToNewHost: function Diag_UlsHostStub$handoffToNewHost$in(host) {
+		},
+		
+		flushAsynchronous: function Diag_UlsHostStub$flushAsynchronous$in() {
+		},
+		
+		dispose: function Diag_UlsHostStub$dispose$in() {
+		}
+	}
+
+
+	Diag._iUlsImpl = function() {}
+	Diag._iUlsImpl._registerInterface$i('Diag._iUlsImpl');
+
+
+	Diag._ulsImplStub = function Diag__ulsImplStub() {
+		this._host = new Diag.UlsHostStub();
+	}
+	Diag._ulsImplStub.prototype = {
+		
+		get__host$i: function Diag__ulsImplStub$get__host$i$in() {
+			return this._host;
+		},
+		
+		set__host$i: function Diag__ulsImplStub$set__host$i$in(value) {
+			return value;
+		},
+		
+		_logImpl$i: function Diag__ulsImplStub$_logImpl$i$in(tagID, categoryID, level, type, skipUlsCallDepthAccounting, output, data) {
+		},
+		
+		_assertImpl$i: function Diag__ulsImplStub$_assertImpl$i$in(tagID, categoryID, condition, output, data) {
+		},
+		
+		_shouldTrace$i: function Diag__ulsImplStub$_shouldTrace$i$in(cat, level) {
+			return false;
+		},
+		
+		_setTraceLevel$i: function Diag__ulsImplStub$_setTraceLevel$i$in(newLevel) {
+		},
+		
+		get__ulsCallDepth$i: function Diag__ulsImplStub$get__ulsCallDepth$i$in() {
+			return 0;
+		}
+	}
+
+
+	Diag.ULS = function Diag_ULS() {
+	}
+	Diag.ULS.setUlsHost = function Diag_ULS$setUlsHost$st(host) {
+		if (Diag.ULS._isDisabled) {
+			Diag.ULS._impl = new Diag._ulsImpl();
+		}
+		Diag.ULS._impl.set__host$i(host);
+		Diag.ULS._isDisabled = false;
+	}
+	Diag.ULS.get_host = function Diag_ULS$get_host$st() {
+		return Diag.ULS._impl.get__host$i();
+	}
+	Diag.ULS.disable = function Diag_ULS$disable$st() {
+		Diag.ULS._impl = new Diag._ulsImplStub();
+		Diag.ULS._isDisabled = true;
+	}
+	Diag.ULS.sendTraceTag = function Diag_ULS$sendTraceTag$st(tagID, categoryID, level, output) {
+		var data = [];
+		for (var $$pai_5 = 4; $$pai_5 < arguments.length; ++$$pai_5) {
+			data[$$pai_5 - 4] = arguments[$$pai_5];
+		}
+		Diag.ULS._impl._logImpl$i(tagID, categoryID, level, 0, false, output, data);
+	}
+	Diag.ULS.shipAssertTag = function Diag_ULS$shipAssertTag$st(tagID, categoryID, condition, output) {
+		var data = [];
+		for (var $$pai_5 = 4; $$pai_5 < arguments.length; ++$$pai_5) {
+			data[$$pai_5 - 4] = arguments[$$pai_5];
+		}
+		Diag.ULS._impl._assertImpl$i(tagID, categoryID, condition, output, data);
+	}
+	Diag.ULS.debugAssertTag = function Diag_ULS$debugAssertTag$st(tagID, categoryID, condition, output) {
+		var data = [];
+		for (var $$pai_5 = 4; $$pai_5 < arguments.length; ++$$pai_5) {
+			data[$$pai_5 - 4] = arguments[$$pai_5];
+		}
+		Diag.ULS._impl._assertImpl$i(tagID, categoryID, condition, output, data);
+	}
+	Diag.ULS.shouldTrace = function Diag_ULS$shouldTrace$st(categoryID, level) {
+		return Diag.ULS._impl._shouldTrace$i(categoryID, level);
+	}
+	Diag.ULS.setTraceLevel = function Diag_ULS$setTraceLevel$st(newLevel) {
+		Diag.ULS._impl._setTraceLevel$i(newLevel);
+	}
+	Diag.ULS.get__ulsCallDepth$i = function Diag_ULS$get__ulsCallDepth$i$st() {
+		return Diag.ULS._impl.get__ulsCallDepth$i();
+	}
+	Diag.ULS._concatArray$i = function Diag_ULS$_concatArray$i$st(o) {
+		var $$t_1;
+		return ($$t_1 = []).concat.apply($$t_1, o).join('');
+	}
+	Diag.ULS._jsonSerialize$i = function Diag_ULS$_jsonSerialize$i$st(o) {
+		if (window.JSON) {
+			return JSON.stringify(o);
+		}
+		return Sys.Serialization._javaScriptSerializer._serialize$i(o);
+	}
+
+
+	Diag._ulsImpl = function Diag__ulsImpl() {
+		this._host = new Diag.UlsHostStub();
+	}
+	Diag._ulsImpl._buildMessageString$i = function Diag__ulsImpl$_buildMessageString$i$st(format, args) {
+		if (!args || !args.length) {
+			return format || '';
+		}
+		for (var i = 0, length = args.length; i < length; ++i) {
+			var datum = args[i];
+			if (datum && typeof(datum) === 'object') {
+				var datumToStringPrototype = Object.getType(datum).prototype['toString'];
+				if (datumToStringPrototype === Diag._ulsImpl._objectToStringPrototype$p || !datumToStringPrototype) {
+					if ((datum).nodeType === 1) {
+						args[i] = Diag.ULS._concatArray$i([ (datum).tagName, '#', (datum).id, '.', (datum).className ]);
+					}
+					else {
+						try {
+							args[i] = Diag.ULS._jsonSerialize$i(datum);
+						}
+						catch (e) {
+							Diag.ULS.debugAssertTag(4862938, 102, false, 'ULS.BuildMessageString: An object with a cyclic reference was logged', null);
+							args[i] = e;
+						}
+					}
+				}
+			}
+		}
+		return (!format) ? args.join(', ') : String._format$i.apply(null, [ format ].concat(args));
+	}
+	Diag._ulsImpl.prototype = {
+		_currentLevel$i: 100,
+		
+		get__ulsCallDepth$i: function Diag__ulsImpl$get__ulsCallDepth$i$in() {
+			return this._ulsCallDepth;
+		},
+		
+		_ulsCallDepth: 0,
+		_inHostTransition: false,
+		
+		get__host$i: function Diag__ulsImpl$get__host$i$in() {
+			return this._host;
+		},
+		
+		set__host$i: function Diag__ulsImpl$set__host$i$in(value) {
+			if (value === this._host) {
+				return value;
+			}
+			if (this._inHostTransition) {
+				return value;
+			}
+			this._inHostTransition = true;
+			if (!value) {
+				this._host.dispose();
+				this._host = new Diag.UlsHostStub();
+			}
+			else {
+				this._host.handoffToNewHost(value);
+				this._host.dispose();
+				this._host = value;
+			}
+			this._inHostTransition = false;
+			return value;
+		},
+		
+		_logImpl$i: function Diag__ulsImpl$_logImpl$i$in(tagID, categoryID, level, type, skipUlsCallDepthAccounting, output, data) {
+			if (!type && !this._shouldTrace$i(categoryID, level) || this._ulsCallDepth > 1) {
+				return;
+			}
+			if (!skipUlsCallDepthAccounting) {
+				this._ulsCallDepth++;
+			}
+			try {
+				var now = new Date();
+				var args = new Diag.LoggingArgs(now.getTime(), categoryID, tagID, level, Diag._ulsImpl._buildMessageString$i(output, data), type);
+				this._host.handleTrace(args);
+			}
+			finally {
+				if (!skipUlsCallDepthAccounting) {
+					this._ulsCallDepth--;
+				}
+			}
+		},
+		
+		_assertImpl$i: function Diag__ulsImpl$_assertImpl$i$in(tagID, categoryID, condition, output, data) {
+			if (!condition && this._ulsCallDepth <= 1) {
+				this._ulsCallDepth++;
+				try {
+					var message = Diag._ulsImpl._buildMessageString$i(output, data);
+					this._logImpl$i(tagID, categoryID, 10, 1, true, message, null);
+					var traceParameters = [ 'TagID: ', Diag.TaggingUtilities.getTagFromiTag(tagID), '\n\n', message ];
+					var dialogMessage = Diag.ULS._concatArray$i(traceParameters);
+					this._host.showAssertDialog(dialogMessage);
+				}
+				finally {
+					this._ulsCallDepth--;
+				}
+			}
+		},
+		
+		_shouldTrace$i: function Diag__ulsImpl$_shouldTrace$i$in(cat, level) {
+			return level <= this._currentLevel$i;
+		},
+		
+		_setTraceLevel$i: function Diag__ulsImpl$_setTraceLevel$i$in(newLevel) {
+			this._currentLevel$i = newLevel;
+		}
+	}
+
+
+	Diag.UULS = function Diag_UULS() {
+	}
+
+
+	Diag.TaggingUtilities = function Diag_TaggingUtilities() {
+	}
+	Diag.TaggingUtilities.getTagFromiTag = function Diag_TaggingUtilities$getTagFromiTag$st(tag) {
+		if (tag <= 65535) {
+			return tag.toString();
+		}
+		if ((tag >>> 24) >= 36) {
+			return String.fromCharCode.call(null, ((tag >>> 24) & 255), ((tag >>> 16) & 255), ((tag >>> 8) & 255), (tag & 255));
+		}
+		var symbolSpace = 'abcdefghijklmnopqrstuvwxyz0123456789';
+		return '' + symbolSpace.charAt(((tag >>> 24) & 63)) + symbolSpace.charAt(((tag >>> 18) & 63)) + symbolSpace.charAt(((tag >>> 12) & 63)) + symbolSpace.charAt(((tag >>> 6) & 63)) + symbolSpace.charAt((tag & 63));
+	}
+	Diag.TaggingUtilities.getiTagFromTag = function Diag_TaggingUtilities$getiTagFromTag$st(sTag) {
+		var result = 0;
+		result = parseInt(sTag);
+		if (result.toString(10) === sTag && result <= 65535) {
+			return result;
+		}
+		if (sTag.length === 4) {
+			result = (sTag.charAt(0) << 24 | sTag.charAt(1) << 16 | sTag.charAt(2) << 8 | sTag.charAt(3));
+		}
+		else {
+			var symbolSpace = 'abcdefghijklmnopqrstuvwxyz0123456789';
+			result = (symbolSpace.indexOf(sTag.charAt(0)) << 24 | symbolSpace.indexOf(sTag.charAt(1)) << 18 | symbolSpace.indexOf(sTag.charAt(2)) << 12 | symbolSpace.indexOf(sTag.charAt(3)) << 6 | symbolSpace.indexOf(sTag.charAt(4)));
+		}
+		return result;
+	}
+	Diag.TaggingUtilities.reserveTag = function Diag_TaggingUtilities$reserveTag$st(iTag) {
+		return iTag;
+	}
+
+
+	Diag.ILogCache = function() {}
+	Diag.ILogCache._registerInterface$i('Diag.ILogCache');
+
+
+	Diag._serializableLogCache = function Diag__serializableLogCache(timestampBase, logs, userSessionId, uploadId, schemaVersion) {
+		this.T = timestampBase;
+		this.L = logs;
+		this.S = userSessionId;
+		this.I = uploadId;
+		this.V = schemaVersion;
+	}
+
+
+	Diag._logCache = function Diag__logCache(sizeThresholdBytes, logMessageMaxChars, userSessionId) {
+		this.addLog = this._addLog$i;
+		this.get_isDataSizeThresholdExceeded = this.get__isDataSizeThresholdExceeded$i;
+		this.get_count = this.get__count$i;
+		this.get_uploadId = this.get__uploadId$i;
+		this.set_uploadId = this.set__uploadId$i;
+		this.reset = this._reset$i;
+		this.serialize = this._serialize$i;
+		this._sizeThresholdBytes = sizeThresholdBytes;
+		this._logMessageMaxChars = logMessageMaxChars;
+		this._userSessionId = userSessionId;
+		this._reset$i();
+	}
+	Diag._logCache.prototype = {
+		_timestampBase: 0,
+		_logs: null,
+		_userSessionId: null,
+		_dataSizeBytes: 0,
+		_sizeThresholdBytes: 0,
+		_logMessageMaxChars: 0,
+		
+		_reset$i: function Diag__logCache$_reset$i$in() {
+			this._logs = [];
+			this._dataSizeBytes = 25;
+			this._timestampBase = new Date().getTime();
+		},
+		
+		get__count$i: function Diag__logCache$get__count$i$in() {
+			return this._logs.length;
+		},
+		
+		_$$pf_UploadId$p: 0,
+		
+		get__uploadId$i: function Diag__logCache$get__uploadId$i$in() {
+			return this._$$pf_UploadId$p;
+		},
+		
+		set__uploadId$i: function Diag__logCache$set__uploadId$i$in(value) {
+			this._$$pf_UploadId$p = value;
+			return value;
+		},
+		
+		_addLog$i: function Diag__logCache$_addLog$i$in(args) {
+			if (!args) {
+				return;
+			}
+			if (args.message.length > this._logMessageMaxChars) {
+				args.message = args.message.substr(0, this._logMessageMaxChars - 13) + '... [trimmed]';
+				Diag.ULS.sendTraceTag(3465240, 100, 50, 'Trimmed message for log {0}', Diag.TaggingUtilities.getTagFromiTag(args.tag));
+			}
+			var log = new Diag._serializableLogEntry(args.message, args.category, args.level, (args.timestamp - this._timestampBase), args.logType, args.tag);
+			var length = log._computeSerializedLength$i();
+			Array._add$i(this._logs, log);
+			this._dataSizeBytes += length;
+		},
+		
+		get__isDataSizeThresholdExceeded$i: function Diag__logCache$get__isDataSizeThresholdExceeded$i$in() {
+			return this._dataSizeBytes > this._sizeThresholdBytes;
+		},
+		
+		_serialize$i: function Diag__logCache$_serialize$i$in() {
+			return Diag.ULS._jsonSerialize$i(new Diag._serializableLogCache(this._timestampBase, this._logs, this._userSessionId, this._$$pf_UploadId$p, 1));
+		}
+	}
+
+
+	Diag._serializableLogEntry = function Diag__serializableLogEntry(message, category, level, timeDelta, type, tag) {
+		this.G = tag;
+		this.T = timeDelta;
+		this.M = message;
+		this.C = category;
+		this.D = (type) * (1000) + level;
+	}
+	Diag._serializableLogEntry._charsInObj$i = function Diag__serializableLogEntry$_charsInObj$i$st(n) {
+		var stringValue = '' + n;
+		return stringValue.length;
+	}
+	Diag._serializableLogEntry.prototype = {
+		G: 0,
+		T: 0,
+		M: null,
+		C: null,
+		D: 0,
+		
+		_computeSerializedLength$i: function Diag__serializableLogEntry$_computeSerializedLength$i$in() {
+			return 31 + Diag._serializableLogEntry._charsInObj$i(this.G) + Diag._serializableLogEntry._charsInObj$i(this.T) + this.M.length + Diag._serializableLogEntry._charsInObj$i(this.C) + Diag._serializableLogEntry._charsInObj$i(this.D);
+		}
+	}
+
+
+	Diag.UlsUtils = function Diag_UlsUtils() {
+	}
+	Diag.UlsUtils.get__standardUlsLevelMap$i = function Diag_UlsUtils$get__standardUlsLevelMap$i$st() {
+		if (!Diag.UlsUtils._standardUlsLevelMap_BackingField) {
+			Diag.UlsUtils._standardUlsLevelMap_BackingField = [];
+			Diag.UlsUtils._standardUlsLevelMap_BackingField[10] = 'Unexpected';
+			Diag.UlsUtils._standardUlsLevelMap_BackingField[15] = 'Monitorable';
+			Diag.UlsUtils._standardUlsLevelMap_BackingField[50] = 'Medium';
+			Diag.UlsUtils._standardUlsLevelMap_BackingField[100] = 'Verbose';
+			Diag.UlsUtils._standardUlsLevelMap_BackingField[200] = 'VerboseEx';
+		}
+		return Diag.UlsUtils._standardUlsLevelMap_BackingField;
+	}
+	Diag.UlsUtils.convertLevelToStandardUlsLevel = function Diag_UlsUtils$convertLevelToStandardUlsLevel$st(level) {
+		return Diag.UlsUtils.get__standardUlsLevelMap$i()[level] || 'VerboseEx';
+	}
+	Diag.UlsUtils.convertMillisecondsToTimestamp = function Diag_UlsUtils$convertMillisecondsToTimestamp$st(milliseconds) {
+		var now = new Date(milliseconds);
+		var timestampParts = [ Diag.UlsUtils._addLeadingZerosFour$p(now.getUTCFullYear()), '-', Diag.UlsUtils._addLeadingZerosTwo$p(now.getUTCMonth() + 1), '-', Diag.UlsUtils._addLeadingZerosTwo$p(now.getUTCDate()), 'T', Diag.UlsUtils._addLeadingZerosTwo$p(now.getUTCHours()), ':', Diag.UlsUtils._addLeadingZerosTwo$p(now.getUTCMinutes()), ':', Diag.UlsUtils._addLeadingZerosTwo$p(now.getUTCSeconds()), '.', Diag.UlsUtils._addLeadingZerosThree$p(now.getUTCMilliseconds()), 'Z' ];
+		return Diag.ULS._concatArray$i(timestampParts);
+	}
+	Diag.UlsUtils._addLeadingZerosFour$p = function Diag_UlsUtils$_addLeadingZerosFour$p$st(num) {
+		return (num < 1000) ? '0' + Diag.UlsUtils._addLeadingZerosThree$p(num) : num.toString();
+	}
+	Diag.UlsUtils._addLeadingZerosThree$p = function Diag_UlsUtils$_addLeadingZerosThree$p$st(num) {
+		return (num < 100) ? '0' + Diag.UlsUtils._addLeadingZerosTwo$p(num) : num.toString();
+	}
+	Diag.UlsUtils._addLeadingZerosTwo$p = function Diag_UlsUtils$_addLeadingZerosTwo$p$st(num) {
+		return (num < 10) ? '0' + num : num.toString();
+	}
+
+
+	Diag.UlsUploadConfiguration = function Diag_UlsUploadConfiguration(logMessageMaxChars, sizeThresholdBytes, uploadCadenceMs, throttlingTimeoutMs, delayedLogHandlingCadenceMs, asyncUploadRequestTimeout, asyncOverride) {
+		if (logMessageMaxChars != null) {
+			this._logMessageMaxChars$i = logMessageMaxChars;
+		}
+		if (sizeThresholdBytes != null) {
+			this._sizeThresholdBytes$i = sizeThresholdBytes;
+		}
+		if (uploadCadenceMs != null) {
+			this._uploadCadenceMs$i = uploadCadenceMs;
+		}
+		if (throttlingTimeoutMs != null) {
+			this._throttlingTimeoutMs$i = throttlingTimeoutMs;
+		}
+		if (delayedLogHandlingCadenceMs != null) {
+			this._delayedLogHandlingCadenceMs$i = delayedLogHandlingCadenceMs;
+		}
+		if (asyncUploadRequestTimeout != null) {
+			this._asyncUploadRequestTimeout$i = asyncUploadRequestTimeout;
+		}
+		if (asyncOverride != null) {
+			this._asyncOverride$i = asyncOverride;
+		}
+	}
+	Diag.UlsUploadConfiguration.prototype = {
+		_logMessageMaxChars$i: 3072,
+		_sizeThresholdBytes$i: 65536,
+		_uploadCadenceMs$i: 60000,
+		_throttlingTimeoutMs$i: 2000,
+		_delayedLogHandlingCadenceMs$i: 10000,
+		_asyncUploadRequestTimeout$i: 5000,
+		_asyncOverride$i: false
+	}
+
+
+	Diag.UploadingUlsHost = function Diag_UploadingUlsHost(sessionId, uploadUrl, config) {
+		this.$$d__endThrottling$p = Function._createDelegate$i(this, this._endThrottling$p);
+		this.$$d__flushImpl$i = Function._createDelegate$i(this, this._flushImpl$i);
+		this.$$d__handleDelayedLogs$i = Function._createDelegate$i(this, this._handleDelayedLogs$i);
+		if (!config) {
+			config = new Diag.UlsUploadConfiguration(null, null, null, null, null, null, null);
+		}
+		this._sessionId = sessionId;
+		this.uploadUrl = uploadUrl;
+		if (this.uploadUrl.toLowerCase()._startsWith$i('http:') && document.URL.toLowerCase()._startsWith$i('https:')) {
+			alert('!!DISABLING ULS!! due to mixed content between the HTTPS page and the HTTP bULS upload URL.');
+			Diag.ULS.disable();
+		}
+		this._uploadCadenceMs = config._uploadCadenceMs$i;
+		this._throttlingTimeoutMs = config._throttlingTimeoutMs$i;
+		this._delayedLogHandlingCadenceMs = config._delayedLogHandlingCadenceMs$i;
+		this._uploadRequestTimeout = config._asyncUploadRequestTimeout$i;
+		this._asyncOverride = config._asyncOverride$i;
+		this._logCache = new Diag._logCache(config._sizeThresholdBytes$i, config._logMessageMaxChars$i, sessionId);
+		this._resetCadenceTimer$p();
+		this._delayedLogBuffer = [];
+		this._resetDelayedLoggingTimer$p();
+	}
+	Diag.UploadingUlsHost.prototype = {
+		uploadUrl: null,
+		_failedUploadAttemptCount: 0,
+		_uploadCadenceMs: 0,
+		_throttlingTimeoutMs: 0,
+		_delayedLogHandlingCadenceMs: 0,
+		_uploadRequestTimeout: 0,
+		_asyncOverride: false,
+		_sessionId: null,
+		_nextUploadId$i: 0,
+		_logCache: null,
+		_delayedLogBuffer: null,
+		_ulsCallDepthAdjustment: 0,
+		_request: null,
+		_disposing: false,
+		
+		handleTrace: function Diag_UploadingUlsHost$handleTrace$in(args) {
+			if (this.get__ulsCallDepth$i() > 1) {
+				Array._add$i(this._delayedLogBuffer, args);
+				return;
+			}
+			this._logCache.addLog(args);
+			if (this.logIndicatesError(args)) {
+				this._flushSynchronous$i('LogIndicatesError in HandleTrace');
+				Diag.ULS.sendTraceTag(3731793, 100, 200, 'Flushing error-level log (tag {0}) synchronously', Diag.TaggingUtilities.getTagFromiTag(args.tag));
+			}
+			else if (this._logCache.get_isDataSizeThresholdExceeded()) {
+				this.flushAsynchronous();
+				Diag.ULS.sendTraceTag(3731794, 100, 200, 'Flushing asynchronously due to cache size');
+			}
+		},
+		
+		logIndicatesError: function Diag_UploadingUlsHost$logIndicatesError$in(args) {
+			return !!args && (args.logType === 1 || args.level === 10);
+		},
+		
+		dispose: function Diag_UploadingUlsHost$dispose$in() {
+			if (this._disposing) {
+				return;
+			}
+			this._disposing = true;
+			this.flushForAppClose();
+			Diag.ULS.setUlsHost(null);
+			window.clearTimeout(this._asyncFlushTimeoutId);
+			window.clearTimeout(this._delayedLoggingTimerId);
+			window.clearTimeout(this._cadenceTimerId);
+			this._asyncFlushTimeoutId = 0;
+			this._delayedLoggingTimerId = 0;
+			this._cadenceTimerId = 0;
+		},
+		
+		flushForAppClose: function Diag_UploadingUlsHost$flushForAppClose$in() {
+			this.set__mode$i(2);
+			this._handleDelayedLogs$i();
+			this._sendAfterThrottling$i = false;
+			this._endThrottling$p();
+			this._flushSynchronous$i('FlushForAppClose');
+		},
+		
+		uploadLogs: function Diag_UploadingUlsHost$uploadLogs$in(logs, synchronous) {
+			logs.set_uploadId(this._nextUploadId$i);
+			if (this.uploadSerializedLogs(logs.serialize(), synchronous)) {
+				this._nextUploadId$i++;
+				return true;
+			}
+			return false;
+		},
+		
+		uploadSerializedLogs: function Diag_UploadingUlsHost$uploadSerializedLogs$in(serializedLogs, synchronous) {
+			var asyncRequest = this._asyncOverride || !synchronous;
+			if (!this._request || !asyncRequest) {
+				this._request = new XMLHttpRequest();
+			}
+			if (!this._request.readyState || this._request.readyState === 4) {
+				this._request.open('POST', this.uploadUrl, asyncRequest);
+				this._request.setRequestHeader('Content-Type', 'application/json');
+				this._request.setRequestHeader('X-UserSessionId', this._sessionId);
+				if (asyncRequest) {
+					this._request.timeout = this._uploadRequestTimeout;
+				}
+				this.modifyHttpRequestBeforeUploading(this._request);
+				this._request.send(serializedLogs);
+				return true;
+			}
+			Diag.ULS.sendTraceTag(3731796, 100, 50, 'Could not initiate upload {0}', { UploadId: this._nextUploadId$i, XhrReadyState: this._request.readyState });
+			return false;
+		},
+		
+		_onUploadException$i: function Diag_UploadingUlsHost$_onUploadException$i$in(e) {
+			if (this._request) {
+				this._request.abort();
+			}
+		},
+		
+		modifyHttpRequestBeforeUploading: function Diag_UploadingUlsHost$modifyHttpRequestBeforeUploading$in(request) {
+		},
+		
+		_setTimeoutToLogOriginAndExecute$p: function Diag_UploadingUlsHost$_setTimeoutToLogOriginAndExecute$p$in(code, milliseconds, origin) {
+			var $$t_3 = this;
+			return window.setTimeout(function() {
+				Diag.ULS.sendTraceTag(3731797, 100, 200, 'Timeout ({0} ms) set by {1} is now firing.', milliseconds, origin);
+				code();
+			}, milliseconds);
+		},
+		
+		_delayedLoggingTimerId: 0,
+		
+		_resetDelayedLoggingTimer$p: function Diag_UploadingUlsHost$_resetDelayedLoggingTimer$p$in() {
+			window.clearTimeout(this._delayedLoggingTimerId);
+			this._delayedLoggingTimerId = this._setTimeoutToLogOriginAndExecute$p(this.$$d__handleDelayedLogs$i, this._delayedLogHandlingCadenceMs, 'ResetDelayedLoggingTimer');
+		},
+		
+		get__ulsCallDepth$i: function Diag_UploadingUlsHost$get__ulsCallDepth$i$in() {
+			return Diag.ULS.get__ulsCallDepth$i() + this._ulsCallDepthAdjustment;
+		},
+		
+		_handleDelayedLogs$i: function Diag_UploadingUlsHost$_handleDelayedLogs$i$in() {
+			var length = this._delayedLogBuffer.length;
+			if (!length) {
+				this._resetDelayedLoggingTimer$p();
+				return;
+			}
+			var bufferCopy = [];
+			Array._addRange$i(bufferCopy, this._delayedLogBuffer);
+			this._delayedLogBuffer = [];
+			Diag.ULS.sendTraceTag(3731798, 100, 50, 'HandleDelayedLogs {0}', { Count: length });
+			this._ulsCallDepthAdjustment++;
+			for (var i = 0; i < length; i++) {
+				this.handleTrace(bufferCopy[i]);
+			}
+			this._ulsCallDepthAdjustment--;
+			this._resetDelayedLoggingTimer$p();
+		},
+		
+		_cadenceTimerId: 0,
+		
+		_resetCadenceTimer$p: function Diag_UploadingUlsHost$_resetCadenceTimer$p$in() {
+			window.clearTimeout(this._cadenceTimerId);
+			this._cadenceTimerId = this._setTimeoutToLogOriginAndExecute$p(this.$$d__flushImpl$i, this._uploadCadenceMs, 'ResetCadenceTimer');
+		},
+		
+		_throttlingTimeoutId: 0,
+		_mode: 0,
+		
+		set__mode$i: function Diag_UploadingUlsHost$set__mode$i$in(value) {
+			if (!value) {
+				window.clearTimeout(this._throttlingTimeoutId);
+				this._throttlingTimeoutId = 0;
+			}
+			else if (!this._mode) {
+				this._throttlingTimeoutId = this._setTimeoutToLogOriginAndExecute$p(this.$$d__endThrottling$p, this._throttlingTimeoutMs, 'ThrottlingMode Setter');
+			}
+			this._mode = value;
+			return value;
+		},
+		
+		_endThrottling$p: function Diag_UploadingUlsHost$_endThrottling$p$in() {
+			this.set__mode$i(0);
+			if (this._sendAfterThrottling$i) {
+				this._sendAfterThrottling$i = false;
+				this._flushImpl$i();
+			}
+		},
+		
+		_sendAfterThrottling$i: false,
+		
+		_shouldThrottle$i: function Diag_UploadingUlsHost$_shouldThrottle$i$in(synchronousFlush) {
+			return this._mode === 2 || (this._mode === 1 && !synchronousFlush);
+		},
+		
+		_flushSynchronous$i: function Diag_UploadingUlsHost$_flushSynchronous$i$in(reason) {
+			Diag.ULS.sendTraceTag(3731800, 100, 200, 'Flushing Synchronous due to {0}', reason);
+			this._flushImpl$i(true);
+		},
+		
+		_asyncFlushTimeoutId: 0,
+		
+		flushAsynchronous: function Diag_UploadingUlsHost$flushAsynchronous$in() {
+			this._flushAsynchronousInternal$i(0);
+		},
+		
+		_flushAsynchronousInternal$i: function Diag_UploadingUlsHost$_flushAsynchronousInternal$i$in(delay) {
+			if (!this._asyncFlushTimeoutId) {
+				this._asyncFlushTimeoutId = this._setTimeoutToLogOriginAndExecute$p(this.$$d__flushImpl$i, delay, 'FlushAsynchronous');
+			}
+		},
+		
+		_flushImpl$i: function Diag_UploadingUlsHost$_flushImpl$i$in(synchronous) {
+			this._ulsCallDepthAdjustment++;
+			window.clearTimeout(this._asyncFlushTimeoutId);
+			this._asyncFlushTimeoutId = 0;
+			if (!this._logCache.get_count()) {
+				this._resetCadenceTimer$p();
+				this._ulsCallDepthAdjustment--;
+				return;
+			}
+			if (this._shouldThrottle$i(synchronous)) {
+				Diag.ULS.sendTraceTag(3731801, 100, 200, 'Not flushing ({0}) due to throttling', (synchronous) ? 'sync' : 'async');
+				this._sendAfterThrottling$i = true;
+				this._ulsCallDepthAdjustment--;
+				return;
+			}
+			this.set__mode$i((synchronous) ? 2 : 1);
+			this._resetCadenceTimer$p();
+			Diag.ULS.sendTraceTag(3731803, 100, 200, 'Flushing ({0}) cached bULS logs ({1} logs)', (synchronous) ? 'sync' : 'async', this._logCache.get_count());
+			var uploadSucceeded;
+			try {
+				uploadSucceeded = this.uploadLogs(this._logCache, synchronous);
+			}
+			catch (e) {
+				Diag.ULS.debugAssertTag(5838928, 100, false, e.message);
+				this._onUploadException$i(e);
+				uploadSucceeded = false;
+			}
+			if (uploadSucceeded) {
+				this._logCache.reset();
+				this._failedUploadAttemptCount = 0;
+			}
+			else {
+				this._failedUploadAttemptCount++;
+				if (this._failedUploadAttemptCount < 3) {
+					this._flushAsynchronousInternal$i(15000);
+				}
+				else {
+					Diag.ULS.debugAssertTag(5838929, 100, false, 'Failed to upload bULS logs; Clearing cached logs after {0} upload attempts!', 3);
+					this._logCache.reset();
+					this._nextUploadId$i++;
+					this._failedUploadAttemptCount = 0;
+				}
+			}
+			this._ulsCallDepthAdjustment--;
+		},
+		
+		showAssertDialog: function Diag_UploadingUlsHost$showAssertDialog$in(dialogMessage) {
+		},
+		
+		handoffToNewHost: function Diag_UploadingUlsHost$handoffToNewHost$in(host) {
+		}
+	}
+
+
+	Diag.LoggingArgs.registerClass('Diag.LoggingArgs');
+	Diag.UlsHostStub.registerClass('Diag.UlsHostStub', null, Diag.IUlsHost);
+	Diag._ulsImplStub.registerClass('Diag._ulsImplStub', null, Diag._iUlsImpl);
+	Diag.ULS.registerClass('Diag.ULS');
+	Diag._ulsImpl.registerClass('Diag._ulsImpl', null, Diag._iUlsImpl);
+	Diag.UULS.registerClass('Diag.UULS');
+	Diag.TaggingUtilities.registerClass('Diag.TaggingUtilities');
+	Diag._serializableLogCache.registerClass('Diag._serializableLogCache');
+	Diag._logCache.registerClass('Diag._logCache', null, Diag.ILogCache);
+	Diag._serializableLogEntry.registerClass('Diag._serializableLogEntry');
+	Diag.UlsUtils.registerClass('Diag.UlsUtils');
+	Diag.UlsUploadConfiguration.registerClass('Diag.UlsUploadConfiguration');
+	Diag.UploadingUlsHost.registerClass('Diag.UploadingUlsHost', null, Diag.IUlsHost);
+	Diag.ULS._impl = new Diag._ulsImpl();
+	Diag.ULS._isDisabled = false;
+	Diag._ulsImpl._objectToStringPrototype$p = Object.prototype['toString'];
+	Diag.UULS.trace = Diag.ULS.sendTraceTag;
+	Diag.UlsUtils._standardUlsLevelMap_BackingField = null;
+	Diag.UploadingUlsHost.defaultRemoteUlsUrl = 'RemoteUls.ashx';
+	Diag.UploadingUlsHost.maxUploadAttempts = 3;
+	Diag.UploadingUlsHost.retryDelay = 15000;
+	Diag.UploadingUlsHost.sessionIdHeaderName = 'X-UserSessionId';
+})();
